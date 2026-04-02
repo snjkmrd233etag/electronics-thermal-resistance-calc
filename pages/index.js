@@ -26,6 +26,14 @@ const THETA_JC_PRESETS = [
     { label: 'GaN FET (typ. RF)', value: 1.5 },
 ];
 
+const APP_LINKS = [
+    { label: 'Stack Calc', href: 'https://cw-stack-calc.vercel.app/' },
+    { label: 'Wire Calc', href: 'https://cw-wire-calc.vercel.app/' },
+    { label: 'Unit Converter', href: 'https://defenseengineeringunitconverter.vercel.app/?category=force&value=100&from=kn&to=lbf&precision=2' },
+    { label: 'Earned Value', href: 'https://earned-value-management.vercel.app/' },
+    { label: 'Supplier Scorecard', href: 'https://suplier-performance-scorecard-gener.vercel.app/' },
+];
+
 function createId() {
     return Math.random().toString(36).slice(2, 10);
 }
@@ -284,8 +292,8 @@ function analyzeParallel(layersA, layersB, power, ambient, tMax) {
         });
     }
 
-    const breakdownA = withTemps(pathA, resistanceA, pathPowerA, 'Path A');
-    const breakdownB = withTemps(pathB, resistanceB, pathPowerB, 'Path B');
+    const breakdownA = withTemps(pathA, resistanceA, pathPowerA, 'Route A');
+    const breakdownB = withTemps(pathB, resistanceB, pathPowerB, 'Route B');
 
     return {
         mode: 'parallel',
@@ -483,16 +491,16 @@ function renderChainSvg(layers, ambient, junction, title) {
 function GradientBar({ temperatures, ambient, junction }) {
     if (!temperatures?.length || !Number.isFinite(junction)) {
         return (
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5 text-sm text-slate-400">
-                Complete the thermal inputs to render the temperature gradient.
+            <div className="rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-950 to-slate-900 p-5 text-sm text-slate-400 shadow-lg shadow-slate-950/20">
+                Fill in the basic numbers on the left to see the heat range here.
             </div>
         );
     }
 
     return (
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
+        <div className="rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-950 to-slate-900 p-5 shadow-lg shadow-slate-950/20">
             <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-400">
-                <span>Temperature Gradient</span>
+                <span>Heat Range</span>
                 <span>{formatNumber(ambient, 1)}°C to {formatNumber(junction, 1)}°C</span>
             </div>
             <div className="relative h-4 rounded-full bg-gradient-to-r from-cyan-400 via-teal-400 via-40% to-amber-400">
@@ -533,8 +541,8 @@ function MaterialModal({ isOpen, query, onClose, onQueryChange, onSelect }) {
             <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/60">
                 <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
                     <div>
-                        <h2 className="text-xl font-semibold text-slate-100">Material Reference</h2>
-                        <p className="mt-1 text-sm text-slate-400">Select a material to auto-fill thermal conductivity.</p>
+                        <h2 className="text-xl font-semibold text-slate-100">Material Library</h2>
+                        <p className="mt-1 text-sm text-slate-400">Choose a common material to fill in the conductivity value automatically.</p>
                     </div>
                     <button
                         type="button"
@@ -581,7 +589,7 @@ function MaterialModal({ isOpen, query, onClose, onQueryChange, onSelect }) {
     );
 }
 
-function NumericField({ label, value, onChange, suffix, tooltip }) {
+function NumericField({ label, value, onChange, suffix, tooltip, hint }) {
     return (
         <label className="block">
             <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
@@ -601,6 +609,7 @@ function NumericField({ label, value, onChange, suffix, tooltip }) {
                     </span>
                 ) : null}
             </div>
+            {hint ? <span className="mt-2 block text-xs leading-5 text-slate-500">{hint}</span> : null}
         </label>
     );
 }
@@ -620,7 +629,7 @@ function LayerCard({
     onDrop,
 }) {
     const invalid = !evaluated.valid;
-    const label = layer.name || `Layer ${index + 1}`;
+    const label = layer.name || `Step ${index + 1}`;
     const isDirect = layer.mode === 'direct';
     const showThetaPreset = isDieLayer(layer.name) || index === 0;
 
@@ -628,7 +637,7 @@ function LayerCard({
         <div
             onDragOver={onDragOver}
             onDrop={onDrop}
-            className={`rounded-3xl border p-5 shadow-lg shadow-slate-950/15 ${
+            className={`rounded-3xl border p-4 sm:p-5 shadow-lg shadow-slate-950/15 ${
                 invalid ? 'border-rose-500/70 bg-rose-950/20' : 'border-slate-800 bg-slate-900/85'
             }`}
         >
@@ -644,7 +653,7 @@ function LayerCard({
                         :::
                     </button>
                     <div>
-                        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Layer {index + 1} • {chain}</p>
+                        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Step {index + 1} • {chain}</p>
                         <h3 className="mt-1 text-base font-semibold text-slate-100">{label}</h3>
                     </div>
                 </div>
@@ -675,10 +684,16 @@ function LayerCard({
             </div>
 
             <div className="space-y-4">
-                <NumericField label="Layer Name" value={layer.name} onChange={(value) => onLayerChange({ name: value })} />
+                <NumericField
+                    label="Step name"
+                    value={layer.name}
+                    onChange={(value) => onLayerChange({ name: value })}
+                    tooltip="Use simple names like chip package, thermal pad, heat spreader, heatsink, or enclosure."
+                    hint="Name the part heat moves through at this step."
+                />
 
                 <div>
-                    <div className="mb-2 text-sm font-medium text-slate-200">Input Mode</div>
+                    <div className="mb-2 text-sm font-medium text-slate-200">How do you want to fill in this step?</div>
                     <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-950 p-1">
                         <button
                             type="button"
@@ -687,7 +702,7 @@ function LayerCard({
                                 isDirect ? 'bg-amber-400 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
                             }`}
                         >
-                            Direct R (°C/W)
+                            I know the resistance value
                         </button>
                         <button
                             type="button"
@@ -696,14 +711,14 @@ function LayerCard({
                                 !isDirect ? 'bg-teal-400 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
                             }`}
                         >
-                            Physical Properties
+                            Calculate from size + material
                         </button>
                     </div>
                 </div>
 
                 {showThetaPreset ? (
                     <label className="block">
-                        <span className="mb-2 block text-sm font-medium text-slate-200">θ_jc Presets</span>
+                        <span className="mb-2 block text-sm font-medium text-slate-200">Common chip/package examples</span>
                         <select
                             defaultValue=""
                             onChange={(event) => onPresetSelect(event.target.value)}
@@ -722,52 +737,57 @@ function LayerCard({
 
                 {isDirect ? (
                     <NumericField
-                        label="Thermal Resistance Rθ"
+                        label="Resistance for this step"
                         value={layer.R_direct}
                         onChange={(value) => onLayerChange({ R_direct: value })}
                         suffix="°C/W"
+                        hint="Use this if a datasheet or previous calculation already gives you the value."
                     />
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                         <NumericField
-                            label="Thickness t"
+                            label="Thickness"
                             value={layer.thickness_mm}
                             onChange={(value) => onLayerChange({ thickness_mm: value })}
                             suffix="mm"
+                            hint="How thick this material layer is."
                         />
                         <div className="space-y-4">
                             <NumericField
-                                label="Thermal Conductivity k"
+                                label="Material heat-transfer value"
                                 value={layer.conductivity}
                                 onChange={(value) => onLayerChange({ conductivity: value })}
                                 suffix="W/m·K"
+                                tooltip="Higher numbers usually move heat better."
+                                hint="If you do not know this number, use Choose Material."
                             />
                             <button
                                 type="button"
                                 onClick={onOpenMaterial}
                                 className="rounded-full border border-teal-400/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-300 transition hover:border-teal-300 hover:text-teal-200"
                             >
-                                Browse Materials
+                                Choose Material
                             </button>
                         </div>
                         <NumericField
-                            label="Area A"
+                            label="Contact area"
                             value={layer.area_mm2}
                             onChange={(value) => onLayerChange({ area_mm2: value })}
                             suffix="mm²"
+                            hint="The heat-flow area for this step."
                         />
                         <div className="grid grid-cols-2 gap-3">
-                            <NumericField label="W" value={layer.width_mm} onChange={(value) => onLayerChange({ width_mm: value })} suffix="mm" />
-                            <NumericField label="H" value={layer.height_mm} onChange={(value) => onLayerChange({ height_mm: value })} suffix="mm" />
+                            <NumericField label="Width" value={layer.width_mm} onChange={(value) => onLayerChange({ width_mm: value })} suffix="mm" />
+                            <NumericField label="Height" value={layer.height_mm} onChange={(value) => onLayerChange({ height_mm: value })} suffix="mm" />
                         </div>
                         <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
-                            Auto-computed R = {formatNumber(evaluated.resistance, 4)} °C/W
+                            Calculated resistance for this step = {formatNumber(evaluated.resistance, 4)} °C/W
                         </div>
                     </div>
                 )}
 
                 <div className={`rounded-2xl px-4 py-3 text-sm ${invalid ? 'bg-rose-500/10 text-rose-200' : 'bg-slate-950/80 text-slate-300'}`}>
-                    {invalid ? 'Invalid layer input. R must be greater than zero and physical properties must all be valid.' : `Computed resistance: ${formatNumber(evaluated.resistance, 4)} °C/W`}
+                    {invalid ? 'Enter numbers greater than zero. In size-and-material mode, thickness, material value, and contact area are all required.' : `This step adds ${formatNumber(evaluated.resistance, 4)} °C/W of resistance to heat flow.`}
                 </div>
             </div>
         </div>
@@ -799,11 +819,14 @@ function ThermalDiagram({ results, ambient, debouncedResults }) {
     const junction = debouncedResults.junctionTemperature;
 
     return (
-        <div className="space-y-6 rounded-[28px] border border-slate-800 bg-slate-900/85 p-6 shadow-2xl shadow-slate-950/20">
+        <div className="space-y-5 rounded-[28px] border border-slate-700/80 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-4 shadow-2xl shadow-slate-950/25 sm:space-y-6 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Visual Output</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-slate-50">Thermal Resistance Chain</h2>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-50">Heat Flow View</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        This view shows how heat travels from the chip through each step until it reaches the surrounding air.
+                    </p>
                 </div>
                 <div className={`rounded-full px-4 py-2 text-sm font-semibold ${
                     results.valid && Number.isFinite(results.thermalMargin) && results.thermalMargin > 0
@@ -811,18 +834,18 @@ function ThermalDiagram({ results, ambient, debouncedResults }) {
                         : 'bg-rose-500/15 text-rose-200'
                 }`}>
                     {results.valid && Number.isFinite(results.thermalMargin) && results.thermalMargin > 0
-                        ? `✓ PASS — Thermal Margin: ${formatSigned(results.thermalMargin, 1)}°C`
+                        ? `SAFE - Margin: ${formatSigned(results.thermalMargin, 1)}°C`
                         : results.valid
-                            ? `✗ FAIL — Exceeded by ${formatNumber(Math.abs(results.thermalMargin), 1)}°C`
-                            : 'Complete the input data to evaluate pass/fail'}
+                            ? `TOO HOT - Over by ${formatNumber(Math.abs(results.thermalMargin), 1)}°C`
+                            : 'Fill in the inputs to get a safety result'}
                 </div>
             </div>
 
             <div className="rounded-3xl border border-slate-800 bg-slate-950/85 p-4">
                 {debouncedResults.mode === 'parallel' ? (
                     <div className="grid gap-6 xl:grid-cols-2">
-                        <div>{renderChainSvg(debouncedResults.pathA.layers, ambient, junction, 'Path A')}</div>
-                        <div>{renderChainSvg(debouncedResults.pathB.layers, ambient, junction, 'Path B')}</div>
+                        <div>{renderChainSvg(debouncedResults.pathA.layers, ambient, junction, 'Route A')}</div>
+                        <div>{renderChainSvg(debouncedResults.pathB.layers, ambient, junction, 'Route B')}</div>
                     </div>
                 ) : (
                     renderChainSvg(debouncedResults.breakdown, ambient, junction, 'Primary Chain')
@@ -849,6 +872,7 @@ export default function Home() {
     const [scenarioOpen, setScenarioOpen] = useState(true);
     const [copyStatus, setCopyStatus] = useState('');
     const [selectedSolverLayer, setSelectedSolverLayer] = useState('');
+    const [modeMenuOpen, setModeMenuOpen] = useState(false);
 
     const results = useMemo(() => computeResults(state), [state]);
     const debouncedState = useDebouncedValue(state, 150);
@@ -867,7 +891,7 @@ export default function Home() {
             .filter(({ layer }) => layer.mode === 'physical')
             .map(({ chain, layer }) => ({
                 key: `${chain}:${layer.id}`,
-                label: `${chain === 'A' ? 'Path A' : 'Path B'} • ${layer.name || 'Unnamed layer'}`,
+                label: `${chain === 'A' ? 'Route A' : 'Route B'} • ${layer.name || 'Unnamed step'}`,
             }));
     }, [state.layers, state.layersB, state.parallelMode]);
 
@@ -888,11 +912,11 @@ export default function Home() {
 
     async function copySummary() {
         const lines = [
-            `CW ThermalCalc Results — ${new Date().toLocaleString()}`,
-            `Layers: ${results.breakdown.map((layer) => `${layer.pathLabel ? `${layer.pathLabel} ` : ''}${layer.name || 'Unnamed'} (${formatNumber(layer.resistance, 3)} °C/W)`).join(', ')}`,
-            `Total Rθ_ja: ${formatNumber(results.totalResistance, 2)} °C/W`,
-            `T_junction: ${formatNumber(results.junctionTemperature, 1)} °C  |  Margin: ${formatSigned(results.thermalMargin, 1)}°C`,
-            `Max Allowable Power: ${formatNumber(results.maxAllowablePower, 2)} W`,
+            `CW ThermalCalc summary - ${new Date().toLocaleString()}`,
+            `Cooling steps: ${results.breakdown.map((layer) => `${layer.pathLabel ? `${layer.pathLabel} ` : ''}${layer.name || 'Unnamed step'} (${formatNumber(layer.resistance, 3)} °C/W)`).join(', ')}`,
+            `Total resistance: ${formatNumber(results.totalResistance, 2)} °C/W`,
+            `Predicted chip temperature: ${formatNumber(results.junctionTemperature, 1)} °C | Safety margin: ${formatSigned(results.thermalMargin, 1)}°C`,
+            `Maximum allowed power at these conditions: ${formatNumber(results.maxAllowablePower, 2)} W`,
         ].join('\n');
 
         try {
@@ -917,71 +941,97 @@ export default function Home() {
         setMaterialQuery('');
     }
 
+    function selectLayoutMode(mode) {
+        if (mode === 'single') {
+            dispatch({ type: 'TOGGLE_PARALLEL', value: false });
+        }
+        if (mode === 'parallel') {
+            dispatch({ type: 'TOGGLE_PARALLEL', value: true });
+        }
+        if (mode === 'guide') {
+            const guide = document.getElementById('quick-start-guide');
+            if (guide) {
+                guide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        setModeMenuOpen(false);
+    }
+
     function renderLayerStack(chainKey, title, layers, evaluatedLayers) {
         return (
-            <div className="space-y-5">
-                <div className="rounded-[28px] border border-slate-800 bg-slate-900/85 p-5 shadow-xl shadow-slate-950/15">
+            <div className="space-y-5 xl:min-w-0">
+                <div className="rounded-[28px] border border-slate-700/80 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-5 shadow-xl shadow-slate-950/20">
                     <div className="mb-4 flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{chainKey === 'A' ? 'Primary Path' : 'Parallel Branch'}</p>
+                            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{chainKey === 'A' ? 'Main Route' : 'Second Route'}</p>
                             <h3 className="mt-2 text-xl font-semibold text-slate-50">{title}</h3>
+                            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+                                Add each part that heat passes through on its way from the device to the air.
+                            </p>
                         </div>
                         <button
                             type="button"
                             onClick={() => dispatch({ type: 'ADD_LAYER', chain: chainKey })}
-                            className="rounded-full border border-teal-400/40 bg-teal-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-teal-200 transition hover:border-teal-300 hover:bg-teal-400/15"
+                            className="rounded-full border border-teal-400/40 bg-teal-400/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-200 transition hover:border-teal-300 hover:bg-teal-400/15 sm:px-4 sm:text-xs"
                         >
-                            + Add Layer
+                            + Add Part
                         </button>
                     </div>
                     <PresetButtons onPreset={(preset) => dispatch({ type: 'SET_PRESET', chain: chainKey, preset })} />
+                    <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-slate-400">
+                        <span>{layers.length} {layers.length === 1 ? 'part' : 'parts'}</span>
+                        <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Scroll inside this panel when the list gets long</span>
+                    </div>
+                    <div className="app-scrollbar mt-4 max-h-[68vh] overflow-y-auto pr-2 sm:max-h-[60vh]">
+                        <div className="space-y-4">
+                            {layers.map((layer, index) => (
+                                <LayerCard
+                                    key={layer.id}
+                                    chain={chainKey === 'A' ? 'Route A' : 'Route B'}
+                                    index={index}
+                                    layer={layer}
+                                    evaluated={evaluatedLayers[index] || { resistance: NaN, valid: false }}
+                                    onLayerChange={(patch) => dispatch({ type: 'UPDATE_LAYER', chain: chainKey, id: layer.id, patch })}
+                                    onDelete={() => dispatch({ type: 'DELETE_LAYER', chain: chainKey, id: layer.id })}
+                                    onMove={(from, to) => {
+                                        if (to < 0 || to >= layers.length) {
+                                            return;
+                                        }
+                                        dispatch({ type: 'MOVE_LAYER', chain: chainKey, from, to });
+                                    }}
+                                    onOpenMaterial={() => setMaterialTarget({ chain: chainKey, id: layer.id })}
+                                    onPresetSelect={(value) => {
+                                        if (!value || value === 'custom') {
+                                            return;
+                                        }
+                                        dispatch({
+                                            type: 'UPDATE_LAYER',
+                                            chain: chainKey,
+                                            id: layer.id,
+                                            patch: { mode: 'direct', R_direct: value },
+                                        });
+                                    }}
+                                    onDragStart={() => setDragState({ chain: chainKey, index })}
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={() => {
+                                        if (!dragState || dragState.chain !== chainKey || dragState.index === index) {
+                                            return;
+                                        }
+                                        dispatch({ type: 'MOVE_LAYER', chain: chainKey, from: dragState.index, to: index });
+                                        setDragState(null);
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
-
-                {layers.map((layer, index) => (
-                    <LayerCard
-                        key={layer.id}
-                        chain={chainKey === 'A' ? 'Path A' : 'Path B'}
-                        index={index}
-                        layer={layer}
-                        evaluated={evaluatedLayers[index] || { resistance: NaN, valid: false }}
-                        onLayerChange={(patch) => dispatch({ type: 'UPDATE_LAYER', chain: chainKey, id: layer.id, patch })}
-                        onDelete={() => dispatch({ type: 'DELETE_LAYER', chain: chainKey, id: layer.id })}
-                        onMove={(from, to) => {
-                            if (to < 0 || to >= layers.length) {
-                                return;
-                            }
-                            dispatch({ type: 'MOVE_LAYER', chain: chainKey, from, to });
-                        }}
-                        onOpenMaterial={() => setMaterialTarget({ chain: chainKey, id: layer.id })}
-                        onPresetSelect={(value) => {
-                            if (!value || value === 'custom') {
-                                return;
-                            }
-                            dispatch({
-                                type: 'UPDATE_LAYER',
-                                chain: chainKey,
-                                id: layer.id,
-                                patch: { mode: 'direct', R_direct: value },
-                            });
-                        }}
-                        onDragStart={() => setDragState({ chain: chainKey, index })}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={() => {
-                            if (!dragState || dragState.chain !== chainKey || dragState.index === index) {
-                                return;
-                            }
-                            dispatch({ type: 'MOVE_LAYER', chain: chainKey, from: dragState.index, to: index });
-                            setDragState(null);
-                        }}
-                    />
-                ))}
             </div>
         );
     }
 
     return (
         <>
-            <Meta title="CW ThermalCalc" description="Junction-to-Ambient Thermal Resistance Calculator for rugged defense electronics." />
+            <Meta title="CW ThermalCalc" description="A guided calculator that checks whether an electronic device stays within a safe temperature." />
             <MaterialModal
                 isOpen={Boolean(materialTarget)}
                 query={materialQuery}
@@ -994,50 +1044,114 @@ export default function Home() {
             />
             <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] text-slate-100">
                 <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
-                    <header className="mb-8 rounded-[32px] border border-slate-800 bg-slate-900/80 px-6 py-7 shadow-2xl shadow-slate-950/20">
+                    <nav className="mb-4 rounded-[28px] border border-slate-700/80 bg-gradient-to-r from-slate-900/90 to-slate-950/90 px-4 py-4 shadow-xl shadow-slate-950/15">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="mr-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                                Engineering Apps
+                            </span>
+                            {APP_LINKS.map((app) => (
+                                <a
+                                    key={app.href}
+                                    href={app.href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-full border border-slate-700 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-white"
+                                >
+                                    {app.label}
+                                </a>
+                            ))}
+                        </div>
+                    </nav>
+                    <header className="mb-8 rounded-[32px] border border-slate-700/80 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.98))] px-4 py-5 shadow-2xl shadow-slate-950/25 sm:px-6 sm:py-7">
                         <div className="flex flex-wrap items-start justify-between gap-5">
                             <div>
                                 <p className="text-xs uppercase tracking-[0.28em] text-teal-300">Curtiss-Wright Defense Electronics</p>
                                 <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">CW ThermalCalc</h1>
                                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-                                    Junction-to-Ambient Thermal Resistance Calculator for rugged embedded electronics. Model series and parallel thermal paths, compute interface temperatures, and verify thermal margin in real time.
+                                    A guided heat-check tool for electronics. Enter the device heat, the surrounding temperature, and the cooling parts to see if the chip stays within a safe temperature.
                                 </p>
                             </div>
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                                <div className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">
-                                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Core Equation</div>
-                                    <div className="mt-2 text-sm text-slate-200">T_j = T_ambient + P × ΣR_layers</div>
+                            <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-1 xl:grid-cols-2">
+                                <div className="rounded-2xl border border-slate-700/80 bg-slate-950/60 px-4 py-3">
+                                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Step 1</div>
+                                    <div className="mt-2 text-sm text-slate-200">Enter power, surrounding temperature, and the safe limit.</div>
                                 </div>
                                 <div className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">
-                                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Parallel Paths</div>
-                                    <div className="mt-2 text-sm text-slate-200">R_eq = 1 / (1/R_A + 1/R_B)</div>
+                                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Step 2</div>
+                                    <div className="mt-2 text-sm text-slate-200">List the parts that carry heat away from the device.</div>
                                 </div>
                             </div>
                         </div>
                     </header>
 
+                    <section id="quick-start-guide" className="mb-8 grid gap-3 md:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-700/70 bg-slate-900/70 px-4 py-4 text-sm text-slate-300 shadow-lg shadow-slate-950/10">
+                            <span className="font-semibold text-slate-100">Quick start:</span> leave the sample values in place if you want to see a working example first.
+                        </div>
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100 shadow-lg shadow-slate-950/10">
+                            <span className="font-semibold">Green result:</span> the current setup stays below the safe temperature limit.
+                        </div>
+                        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-100 shadow-lg shadow-slate-950/10">
+                            <span className="font-semibold">Red result:</span> one or more parts need better cooling or a lower power level.
+                        </div>
+                    </section>
+
                     <div className="grid gap-6 xl:grid-cols-[1.18fr_1.1fr_0.92fr]">
                         <section className="space-y-6">
-                            <div className="rounded-[28px] border border-slate-800 bg-slate-900/85 p-6 shadow-xl shadow-slate-950/15">
+                            <div className="rounded-[28px] border border-slate-700/80 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-4 shadow-xl shadow-slate-950/20 sm:p-6">
                                 <div className="mb-5 flex items-center justify-between gap-4">
                                     <div>
                                         <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Inputs</p>
-                                        <h2 className="mt-2 text-2xl font-semibold text-slate-50">Global Parameters</h2>
+                                        <h2 className="mt-2 text-2xl font-semibold text-slate-50">Basic Setup</h2>
+                                        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+                                            Start with three numbers: how much heat the device makes, how hot the surrounding air is, and the highest safe chip temperature.
+                                        </p>
                                     </div>
-                                    <label className="flex items-center gap-3 rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-sm text-slate-300">
-                                        <span>Enable Parallel Path</span>
-                                        <input
-                                            type="checkbox"
-                                            checked={state.parallelMode}
-                                            onChange={(event) => dispatch({ type: 'TOGGLE_PARALLEL', value: event.target.checked })}
-                                            className="h-4 w-4 accent-teal-400"
-                                        />
-                                    </label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setModeMenuOpen((current) => !current)}
+                                            className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-sm text-slate-300 transition hover:border-teal-400 hover:text-white"
+                                        >
+                                            <span>{state.parallelMode ? 'Two cooling routes' : 'One cooling route'}</span>
+                                            <span className={`text-xs transition-transform duration-200 ${modeMenuOpen ? 'rotate-180' : ''}`}>⌄</span>
+                                        </button>
+                                        <div
+                                            className={`absolute right-0 z-20 mt-3 w-64 origin-top-right overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl shadow-slate-950/40 transition-all duration-200 ${
+                                                modeMenuOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'
+                                            }`}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => selectLayoutMode('single')}
+                                                className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-slate-900 ${!state.parallelMode ? 'text-teal-300' : 'text-slate-200'}`}
+                                            >
+                                                <span>One cooling route</span>
+                                                {!state.parallelMode ? <span>•</span> : null}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => selectLayoutMode('parallel')}
+                                                className={`flex w-full items-center justify-between border-t border-slate-800 px-4 py-3 text-left text-sm transition hover:bg-slate-900 ${state.parallelMode ? 'text-teal-300' : 'text-slate-200'}`}
+                                            >
+                                                <span>Two cooling routes</span>
+                                                {state.parallelMode ? <span>•</span> : null}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => selectLayoutMode('guide')}
+                                                className="flex w-full items-center justify-between border-t border-slate-800 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-slate-900"
+                                            >
+                                                <span>Quick help</span>
+                                                <span className="text-slate-500">→</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
-                                    <NumericField label="Component Power Dissipation" value={state.power_W} onChange={(value) => dispatch({ type: 'SET_FIELD', field: 'power_W', value })} suffix="W" />
+                                    <NumericField label="Device heat / power" value={state.power_W} onChange={(value) => dispatch({ type: 'SET_FIELD', field: 'power_W', value })} suffix="W" tooltip="How much heat the device produces." hint="Use the power that turns into heat." />
                                     <NumericField
-                                        label="Ambient Temperature"
+                                        label="Surrounding air temperature"
                                         value={state.t_ambient}
                                         onChange={(value) => {
                                             dispatch({ type: 'SET_FIELD', field: 't_ambient', value });
@@ -1047,18 +1161,33 @@ export default function Home() {
                                             }
                                         }}
                                         suffix="°C"
+                                        hint="Use the expected ambient temperature around the equipment."
                                     />
-                                    <NumericField label="Max Junction Temperature" value={state.t_j_max} onChange={(value) => dispatch({ type: 'SET_FIELD', field: 't_j_max', value })} suffix="°C" tooltip="Rated device maximum from the datasheet." />
+                                    <NumericField label="Maximum safe chip temperature" value={state.t_j_max} onChange={(value) => dispatch({ type: 'SET_FIELD', field: 't_j_max', value })} suffix="°C" tooltip="The highest temperature the chip can safely reach." hint="This usually comes from the component datasheet." />
+                                </div>
+                                <div className="mt-4 grid gap-3 rounded-3xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300 md:grid-cols-3">
+                                    <div>
+                                        <div className="font-semibold text-slate-100">If you know datasheet values</div>
+                                        <div className="mt-1 text-slate-400">Use the I know the resistance value option for that step.</div>
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-slate-100">If you know dimensions</div>
+                                        <div className="mt-1 text-slate-400">Use the Calculate from size + material option and choose a material.</div>
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-slate-100">If heat leaves two ways</div>
+                                        <div className="mt-1 text-slate-400">Switch to two cooling routes and build both paths separately.</div>
+                                    </div>
                                 </div>
                             </div>
 
                             {state.parallelMode ? (
-                                <div className="grid gap-6 2xl:grid-cols-2">
-                                    {renderLayerStack('A', 'Path A Stack', state.layers, results.pathA?.layers || [])}
-                                    {renderLayerStack('B', 'Path B Stack', state.layersB, results.pathB?.layers || [])}
+                                <div className="space-y-6">
+                                    {renderLayerStack('A', 'Cooling Route A', state.layers, results.pathA?.layers || [])}
+                                    {renderLayerStack('B', 'Cooling Route B', state.layersB, results.pathB?.layers || [])}
                                 </div>
                             ) : (
-                                renderLayerStack('A', 'Layer Stack Builder', state.layers, results.breakdown)
+                                renderLayerStack('A', 'Cooling Route', state.layers, results.breakdown)
                             )}
                         </section>
 
@@ -1066,20 +1195,34 @@ export default function Home() {
                             <ThermalDiagram results={results} ambient={ambient} debouncedResults={debouncedResults} />
                         </section>
                         <section className="space-y-6">
-                            <div className="rounded-[28px] border border-slate-800 bg-slate-900/85 p-6 shadow-xl shadow-slate-950/15">
+                            <div className="rounded-[28px] border border-slate-700/80 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-4 shadow-xl shadow-slate-950/20 sm:p-6">
                                 <div className="mb-5">
                                     <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Results</p>
-                                    <h2 className="mt-2 text-2xl font-semibold text-slate-50">Computed Outputs</h2>
+                                    <h2 className="mt-2 text-2xl font-semibold text-slate-50">Results Summary</h2>
+                                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+                                        Review the predicted chip temperature, how much margin you have left, and whether the design still looks safe.
+                                    </p>
+                                </div>
+                                <div className={`mb-4 rounded-3xl border px-4 py-4 text-sm ${
+                                    results.valid && Number.isFinite(results.thermalMargin) && results.thermalMargin >= 0
+                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+                                        : 'border-rose-500/30 bg-rose-500/10 text-rose-100'
+                                }`}>
+                                    {results.valid && Number.isFinite(results.thermalMargin) && results.thermalMargin >= 0
+                                        ? `This setup looks safe at the current conditions. The chip is predicted to stay ${formatNumber(results.thermalMargin, 1)}°C below the limit.`
+                                        : results.valid
+                                            ? `This setup runs too hot at the current conditions. Reduce power or improve one or more cooling parts by about ${formatNumber(Math.abs(results.thermalMargin), 1)}°C of margin.`
+                                            : 'Enter the required values above to see whether the setup is safe.'}
                                 </div>
                                 <div className="overflow-hidden rounded-3xl border border-slate-800">
                                     <table className="w-full text-left text-sm">
                                         <tbody>
                                             {[
-                                                ['Total Rθ_ja', `${formatNumber(results.totalResistance, 2)} °C/W`],
-                                                ['Predicted T_junction', `${formatNumber(results.junctionTemperature, 1)} °C`],
-                                                ['T_j Max (rated)', `${formatNumber(toNumber(state.t_j_max), 1)} °C`],
-                                                ['Thermal Margin', `${formatSigned(results.thermalMargin, 1)} °C`],
-                                                ['Max Allowable Power', `${formatNumber(results.maxAllowablePower, 2)} W`],
+                                                ['Total resistance to heat flow', `${formatNumber(results.totalResistance, 2)} °C/W`],
+                                                ['Predicted chip temperature', `${formatNumber(results.junctionTemperature, 1)} °C`],
+                                                ['Maximum safe chip temperature', `${formatNumber(toNumber(state.t_j_max), 1)} °C`],
+                                                ['Safety margin', `${formatSigned(results.thermalMargin, 1)} °C`],
+                                                ['Maximum device power at these conditions', `${formatNumber(results.maxAllowablePower, 2)} W`],
                                             ].map(([label, value]) => (
                                                 <tr key={label} className="border-b border-slate-800 last:border-b-0">
                                                     <td className="bg-slate-950/70 px-4 py-3 text-slate-400">{label}</td>
@@ -1093,34 +1236,34 @@ export default function Home() {
                                 {results.mode === 'parallel' ? (
                                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                                         <div className="rounded-2xl border border-slate-800 bg-slate-950/75 px-4 py-3 text-sm">
-                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Path A</div>
-                                            <div className="mt-2 text-slate-200">R = {formatNumber(results.pathA?.totalResistance, 2)} °C/W</div>
-                                            <div className="mt-1 text-slate-400">Power share = {formatNumber(results.pathA?.power, 2)} W</div>
+                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Route A</div>
+                                            <div className="mt-2 text-slate-200">Resistance = {formatNumber(results.pathA?.totalResistance, 2)} °C/W</div>
+                                            <div className="mt-1 text-slate-400">Heat handled = {formatNumber(results.pathA?.power, 2)} W</div>
                                         </div>
                                         <div className="rounded-2xl border border-slate-800 bg-slate-950/75 px-4 py-3 text-sm">
-                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Path B</div>
-                                            <div className="mt-2 text-slate-200">R = {formatNumber(results.pathB?.totalResistance, 2)} °C/W</div>
-                                            <div className="mt-1 text-slate-400">Power share = {formatNumber(results.pathB?.power, 2)} W</div>
+                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Route B</div>
+                                            <div className="mt-2 text-slate-200">Resistance = {formatNumber(results.pathB?.totalResistance, 2)} °C/W</div>
+                                            <div className="mt-1 text-slate-400">Heat handled = {formatNumber(results.pathB?.power, 2)} W</div>
                                         </div>
                                     </div>
                                 ) : null}
 
                                 <div className="mt-6">
                                     <div className="mb-3 flex items-center justify-between gap-3">
-                                        <h3 className="text-lg font-semibold text-slate-100">Per-Layer Breakdown</h3>
+                                        <h3 className="text-lg font-semibold text-slate-100">Step-by-Step Temperature Drop</h3>
                                         <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                            {results.mode === 'parallel' ? '% of branch ΔT' : '% of total'}
+                                            {results.mode === 'parallel' ? '% of route drop' : '% of total drop'}
                                         </span>
                                     </div>
                                     <div className="overflow-auto rounded-3xl border border-slate-800">
                                         <table className="min-w-full text-left text-sm">
                                             <thead className="bg-slate-950/80 text-xs uppercase tracking-[0.18em] text-slate-500">
                                                 <tr>
-                                                    <th className="px-4 py-3">Layer</th>
-                                                    <th className="px-4 py-3">R (°C/W)</th>
-                                                    <th className="px-4 py-3">% of Total</th>
-                                                    <th className="px-4 py-3">T_in (°C)</th>
-                                                    <th className="px-4 py-3">T_out (°C)</th>
+                                                    <th className="px-4 py-3">Step</th>
+                                                    <th className="px-4 py-3">Resistance</th>
+                                                    <th className="px-4 py-3">% of Drop</th>
+                                                    <th className="px-4 py-3">Temp In</th>
+                                                    <th className="px-4 py-3">Temp Out</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1128,7 +1271,7 @@ export default function Home() {
                                                     <tr key={`${layer.pathLabel || 'A'}-${layer.id}`} className="border-t border-slate-800">
                                                         <td className="px-4 py-3 text-slate-200">
                                                             {layer.pathLabel ? `${layer.pathLabel} • ` : ''}
-                                                            {layer.name || 'Unnamed layer'}
+                                                            {layer.name || 'Unnamed step'}
                                                         </td>
                                                         <td className="px-4 py-3 text-slate-300">{formatNumber(layer.resistance, 3)}</td>
                                                         <td className="px-4 py-3 text-slate-300">{formatNumber(layer.contributionPct, 1)}%</td>
@@ -1148,15 +1291,15 @@ export default function Home() {
                                         className="flex w-full items-center justify-between px-5 py-4 text-left"
                                     >
                                         <div>
-                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Scenario Solver</div>
-                                            <div className="mt-1 text-lg font-semibold text-slate-100">Thermal trade studies</div>
+                                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">What-If Tools</div>
+                                            <div className="mt-1 text-lg font-semibold text-slate-100">Try different conditions</div>
                                         </div>
                                         <span className="text-slate-400">{scenarioOpen ? '−' : '+'}</span>
                                     </button>
                                     {scenarioOpen ? (
                                         <div className="space-y-5 border-t border-slate-800 px-5 py-5">
                                             <div>
-                                                <label className="mb-2 block text-sm font-medium text-slate-200">What if ambient = X°C?</label>
+                                                <label className="mb-2 block text-sm font-medium text-slate-200">What if the surrounding air gets hotter?</label>
                                                 <input
                                                     type="range"
                                                     min="0"
@@ -1166,13 +1309,13 @@ export default function Home() {
                                                     className="w-full accent-teal-400"
                                                 />
                                                 <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
-                                                    <span>{state.scenarioAmbient}°C ambient</span>
-                                                    <span>Predicted T_j = {formatNumber(scenarioResults.junctionTemperature, 1)}°C</span>
+                                                    <span>{state.scenarioAmbient}°C air temperature</span>
+                                                    <span>Predicted chip temp = {formatNumber(scenarioResults.junctionTemperature, 1)}°C</span>
                                                 </div>
                                             </div>
 
                                             <div className="space-y-3">
-                                                <label className="block text-sm font-medium text-slate-200">Max TIM thickness</label>
+                                                <label className="block text-sm font-medium text-slate-200">Maximum allowed thickness for a selected material layer</label>
                                                 <select
                                                     value={selectedSolverLayer}
                                                     onChange={(event) => setSelectedSolverLayer(event.target.value)}
@@ -1185,12 +1328,12 @@ export default function Home() {
                                                     ))}
                                                 </select>
                                                 <div className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-300">
-                                                    Max thickness before exceeding T_j max: {formatNumber(maxTimThickness, 3)} mm
+                                                    Thickest this layer can be before the chip exceeds the limit: {formatNumber(maxTimThickness, 3)} mm
                                                 </div>
                                             </div>
 
                                             <div className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-300">
-                                                Max allowable power at current conditions: <span className="font-semibold text-slate-100">{formatNumber(results.maxAllowablePower, 2)} W</span>
+                                                Maximum device power at the current conditions: <span className="font-semibold text-slate-100">{formatNumber(results.maxAllowablePower, 2)} W</span>
                                             </div>
                                         </div>
                                     ) : null}
@@ -1202,9 +1345,9 @@ export default function Home() {
                                         onClick={copySummary}
                                         className="rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-300 hover:bg-amber-400/15"
                                     >
-                                        Copy Results
+                                        Copy Summary
                                     </button>
-                                    {copyStatus ? <span className="text-sm text-slate-400">{copyStatus}</span> : null}
+                                    {copyStatus ? <span className="text-sm text-slate-400">{copyStatus}</span> : <span className="text-sm text-slate-500">Copy a simple summary for email, chat, or review notes.</span>}
                                 </div>
                             </div>
                         </section>
