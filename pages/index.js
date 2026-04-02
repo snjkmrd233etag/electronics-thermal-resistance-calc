@@ -26,13 +26,64 @@ const THETA_JC_PRESETS = [
     { label: 'GaN FET (typ. RF)', value: 1.5 },
 ];
 
-const APP_LINKS = [
-    { label: 'Stack Calc', href: 'https://cw-stack-calc.vercel.app/' },
-    { label: 'Wire Calc', href: 'https://cw-wire-calc.vercel.app/' },
-    { label: 'Reliability Calc', href: 'https://cw-relicalc.vercel.app/' },
-    { label: 'Unit Converter', href: 'https://defenseengineeringunitconverter.vercel.app/?category=force&value=100&from=kn&to=lbf&precision=2' },
-    { label: 'Earned Value', href: 'https://earned-value-management.vercel.app/' },
-    { label: 'Supplier Scorecard', href: 'https://suplier-performance-scorecard-gener.vercel.app/' },
+const NAV_SECTIONS = [
+    {
+        title: 'Thermal Tools',
+        items: [
+            {
+                id: 'thermal-resistance',
+                label: 'Electronics Thermal Resistance Calculator',
+                href: '',
+                description: 'Native calculator workspace',
+            },
+            {
+                id: 'stack-calc',
+                label: 'Stack Calc',
+                href: 'https://cw-stack-calc.vercel.app/',
+                description: 'Embedded tool workspace',
+            },
+            {
+                id: 'reliability-calc',
+                label: 'Reliability Calc',
+                href: 'https://cw-relicalc.vercel.app/',
+                description: 'Embedded tool workspace',
+            },
+        ],
+    },
+    {
+        title: 'Electrical Tools',
+        items: [
+            {
+                id: 'wire-calc',
+                label: 'Wire Calc',
+                href: 'https://cw-wire-calc.vercel.app/',
+                description: 'Embedded tool workspace',
+            },
+            {
+                id: 'unit-converter',
+                label: 'Unit Converter',
+                href: 'https://defenseengineeringunitconverter.vercel.app/?category=force&value=100&from=kn&to=lbf&precision=2',
+                description: 'Embedded tool workspace',
+            },
+        ],
+    },
+    {
+        title: 'Program Tools',
+        items: [
+            {
+                id: 'earned-value',
+                label: 'Earned Value',
+                href: 'https://earned-value-management.vercel.app/',
+                description: 'Embedded tool workspace',
+            },
+            {
+                id: 'supplier-scorecard',
+                label: 'Supplier Scorecard',
+                href: 'https://suplier-performance-scorecard-gener.vercel.app/',
+                description: 'Embedded tool workspace',
+            },
+        ],
+    },
 ];
 
 function createId() {
@@ -867,6 +918,7 @@ function ThermalDiagram({ results, ambient, debouncedResults }) {
 
 export default function Home() {
     const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+    const [selectedTool, setSelectedTool] = useState('thermal-resistance');
     const [theme, setTheme] = useState('midnight');
     const [themeTransitioning, setThemeTransitioning] = useState(false);
     const [dragState, setDragState] = useState(null);
@@ -927,6 +979,13 @@ export default function Home() {
     const maxTimThickness = useMemo(
         () => solveMaxThickness(state, selectedSolverLayer),
         [state, selectedSolverLayer]
+    );
+
+    const activeTool = useMemo(
+        () =>
+            NAV_SECTIONS.flatMap((section) => section.items).find((item) => item.id === selectedTool) ||
+            NAV_SECTIONS[0].items[0],
+        [selectedTool]
     );
 
     async function copySummary() {
@@ -1065,9 +1124,49 @@ export default function Home() {
         );
     }
 
+    function renderEmbeddedWorkspace(tool) {
+        return (
+            <div className="space-y-6">
+                <header className="rounded-[32px] border border-slate-700/80 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.98))] px-4 py-5 shadow-2xl shadow-slate-950/25 sm:px-6 sm:py-7">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.28em] text-teal-300">Embedded Workspace</p>
+                            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">{tool.label}</h1>
+                            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
+                                This tool is loaded inside the same workspace so you can switch apps without opening a new tab.
+                            </p>
+                        </div>
+                        <a
+                            href={tool.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-teal-400/40 bg-teal-400/10 px-4 py-2 text-sm font-semibold text-teal-100 transition hover:border-teal-300 hover:bg-teal-400/15"
+                        >
+                            Open In New Tab
+                        </a>
+                    </div>
+                </header>
+
+                <section className="rounded-[32px] border border-slate-700/80 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-3 shadow-2xl shadow-slate-950/20 sm:p-4">
+                    <div className="mb-3 rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
+                        If this app refuses to load here, use <span className="font-semibold text-slate-100">Open In New Tab</span>. Some sites block embedding.
+                    </div>
+                    <div className="overflow-hidden rounded-[28px] border border-slate-800 bg-slate-950/90">
+                        <iframe
+                            key={tool.id}
+                            src={tool.href}
+                            title={tool.label}
+                            className="h-[78vh] w-full bg-white"
+                        />
+                    </div>
+                </section>
+            </div>
+        );
+    }
+
     return (
         <>
-            <Meta title="Electronics Thermal Resistance Calculator" description="A guided calculator that checks whether an electronic device stays within a safe temperature." />
+            <Meta title={activeTool.label} description="A guided calculator workspace for engineering tools." />
             <MaterialModal
                 isOpen={Boolean(materialTarget)}
                 query={materialQuery}
@@ -1084,37 +1183,69 @@ export default function Home() {
                 className="app-theme min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] text-slate-100"
             >
                 <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
-                    <nav className="mb-4 rounded-[28px] border border-slate-700/80 bg-gradient-to-r from-slate-900/90 to-slate-950/90 px-4 py-4 shadow-xl shadow-slate-950/15">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="mr-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                                Engineering Apps
-                            </span>
-                            {APP_LINKS.map((app) => (
-                                <a
-                                    key={app.href}
-                                    href={app.href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="rounded-full border border-slate-700 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-white"
-                                >
-                                    {app.label}
-                                </a>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={toggleTheme}
-                                className="theme-toggle ml-auto"
-                                aria-label={`Switch to ${theme === 'midnight' ? 'daylight' : 'midnight'} theme`}
-                                aria-pressed={theme === 'daylight'}
-                            >
-                                <span className={`theme-toggle__label ${theme === 'midnight' ? 'theme-toggle__label--active' : ''}`}>Night</span>
-                                <span className="theme-toggle__track" aria-hidden="true">
-                                    <span className="theme-toggle__thumb" />
-                                </span>
-                                <span className={`theme-toggle__label ${theme === 'daylight' ? 'theme-toggle__label--active' : ''}`}>Day</span>
-                            </button>
-                        </div>
-                    </nav>
+                    <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+                        <aside className="xl:sticky xl:top-6 xl:self-start">
+                            <div className="rounded-[32px] border border-slate-700/80 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-5 shadow-2xl shadow-slate-950/20">
+                                <div className="border-b border-slate-800 pb-5">
+                                    <p className="text-xs uppercase tracking-[0.24em] text-teal-300">Engineering Apps</p>
+                                    <h2 className="mt-3 text-2xl font-semibold text-slate-50">Workspace Navigation</h2>
+                                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                                        Move between tools by category. The current calculator stays pinned here.
+                                    </p>
+                                </div>
+
+                                <div className="mt-5 space-y-5">
+                                    {NAV_SECTIONS.map((section) => (
+                                        <div key={section.title}>
+                                            <div className="mb-3 text-xs uppercase tracking-[0.22em] text-slate-500">{section.title}</div>
+                                            <div className="space-y-2">
+                                                {section.items.map((item) => {
+                                                    const isActive = item.id === selectedTool;
+                                                    return (
+                                                        <button
+                                                            key={item.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedTool(item.id)}
+                                                            className={`block w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                                                                isActive
+                                                                    ? 'border-teal-400/30 bg-teal-400/10 text-teal-100'
+                                                                    : 'border-slate-800 bg-slate-950/70 text-slate-200 hover:-translate-y-0.5 hover:border-teal-400 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            <div className="font-semibold">{item.label}</div>
+                                                            <div className={`mt-1 text-xs uppercase tracking-[0.18em] ${isActive ? 'text-teal-300' : 'text-slate-500'}`}>
+                                                                {isActive ? 'Current tool' : item.description}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-6 border-t border-slate-800 pt-5">
+                                    <div className="mb-3 text-xs uppercase tracking-[0.22em] text-slate-500">Appearance</div>
+                                    <button
+                                        type="button"
+                                        onClick={toggleTheme}
+                                        className="theme-toggle"
+                                        aria-label={`Switch to ${theme === 'midnight' ? 'daylight' : 'midnight'} theme`}
+                                        aria-pressed={theme === 'daylight'}
+                                    >
+                                        <span className={`theme-toggle__label ${theme === 'midnight' ? 'theme-toggle__label--active' : ''}`}>Night</span>
+                                        <span className="theme-toggle__track" aria-hidden="true">
+                                            <span className="theme-toggle__thumb" />
+                                        </span>
+                                        <span className={`theme-toggle__label ${theme === 'daylight' ? 'theme-toggle__label--active' : ''}`}>Day</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <div className="min-w-0">
+                    {selectedTool === 'thermal-resistance' ? (
+                    <>
                     <header className="mb-8 rounded-[32px] border border-slate-700/80 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.98))] px-4 py-5 shadow-2xl shadow-slate-950/25 sm:px-6 sm:py-7">
                         <div className="flex flex-wrap items-start justify-between gap-5">
                             <div>
@@ -1404,6 +1535,12 @@ export default function Home() {
                                 </div>
                             </div>
                         </section>
+                    </div>
+                    </>
+                    ) : (
+                        renderEmbeddedWorkspace(activeTool)
+                    )}
+                        </div>
                     </div>
                 </div>
             </main>
