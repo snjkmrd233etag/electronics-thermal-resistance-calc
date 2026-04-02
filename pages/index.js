@@ -866,6 +866,8 @@ function ThermalDiagram({ results, ambient, debouncedResults }) {
 
 export default function Home() {
     const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+    const [theme, setTheme] = useState('midnight');
+    const [themeTransitioning, setThemeTransitioning] = useState(false);
     const [dragState, setDragState] = useState(null);
     const [materialTarget, setMaterialTarget] = useState(null);
     const [materialQuery, setMaterialQuery] = useState('');
@@ -896,6 +898,22 @@ export default function Home() {
     }, [state.layers, state.layersB, state.parallelMode]);
 
     useEffect(() => {
+        const savedTheme = window.localStorage.getItem('thermalcalc-theme');
+        if (savedTheme === 'daylight' || savedTheme === 'midnight') {
+            setTheme(savedTheme);
+            return;
+        }
+
+        if (window.matchMedia?.('(prefers-color-scheme: light)').matches) {
+            setTheme('daylight');
+        }
+    }, []);
+
+    useEffect(() => {
+        window.localStorage.setItem('thermalcalc-theme', theme);
+    }, [theme]);
+
+    useEffect(() => {
         if (physicalLayerOptions.length === 0) {
             setSelectedSolverLayer('');
             return;
@@ -912,7 +930,7 @@ export default function Home() {
 
     async function copySummary() {
         const lines = [
-            `CW ThermalCalc summary - ${new Date().toLocaleString()}`,
+            `Electronics Thermal Resistance Calculator summary - ${new Date().toLocaleString()}`,
             `Cooling steps: ${results.breakdown.map((layer) => `${layer.pathLabel ? `${layer.pathLabel} ` : ''}${layer.name || 'Unnamed step'} (${formatNumber(layer.resistance, 3)} °C/W)`).join(', ')}`,
             `Total resistance: ${formatNumber(results.totalResistance, 2)} °C/W`,
             `Predicted chip temperature: ${formatNumber(results.junctionTemperature, 1)} °C | Safety margin: ${formatSigned(results.thermalMargin, 1)}°C`,
@@ -956,6 +974,23 @@ export default function Home() {
         }
         setModeMenuOpen(false);
     }
+
+    function toggleTheme() {
+        setThemeTransitioning(true);
+        setTheme((current) => (current === 'midnight' ? 'daylight' : 'midnight'));
+    }
+
+    useEffect(() => {
+        if (!themeTransitioning) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setThemeTransitioning(false);
+        }, 420);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [themeTransitioning]);
 
     function renderLayerStack(chainKey, title, layers, evaluatedLayers) {
         return (
@@ -1031,7 +1066,7 @@ export default function Home() {
 
     return (
         <>
-            <Meta title="CW ThermalCalc" description="A guided calculator that checks whether an electronic device stays within a safe temperature." />
+            <Meta title="Electronics Thermal Resistance Calculator" description="A guided calculator that checks whether an electronic device stays within a safe temperature." />
             <MaterialModal
                 isOpen={Boolean(materialTarget)}
                 query={materialQuery}
@@ -1042,7 +1077,11 @@ export default function Home() {
                 onQueryChange={setMaterialQuery}
                 onSelect={applyMaterial}
             />
-            <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] text-slate-100">
+            <main
+                data-theme={theme}
+                data-theme-switching={themeTransitioning ? 'true' : 'false'}
+                className="app-theme min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] text-slate-100"
+            >
                 <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
                     <nav className="mb-4 rounded-[28px] border border-slate-700/80 bg-gradient-to-r from-slate-900/90 to-slate-950/90 px-4 py-4 shadow-xl shadow-slate-950/15">
                         <div className="flex flex-wrap items-center gap-3">
@@ -1060,13 +1099,26 @@ export default function Home() {
                                     {app.label}
                                 </a>
                             ))}
+                            <button
+                                type="button"
+                                onClick={toggleTheme}
+                                className="theme-toggle ml-auto"
+                                aria-label={`Switch to ${theme === 'midnight' ? 'daylight' : 'midnight'} theme`}
+                                aria-pressed={theme === 'daylight'}
+                            >
+                                <span className={`theme-toggle__label ${theme === 'midnight' ? 'theme-toggle__label--active' : ''}`}>Night</span>
+                                <span className="theme-toggle__track" aria-hidden="true">
+                                    <span className="theme-toggle__thumb" />
+                                </span>
+                                <span className={`theme-toggle__label ${theme === 'daylight' ? 'theme-toggle__label--active' : ''}`}>Day</span>
+                            </button>
                         </div>
                     </nav>
                     <header className="mb-8 rounded-[32px] border border-slate-700/80 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_26%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.98))] px-4 py-5 shadow-2xl shadow-slate-950/25 sm:px-6 sm:py-7">
                         <div className="flex flex-wrap items-start justify-between gap-5">
                             <div>
                                 <p className="text-xs uppercase tracking-[0.28em] text-teal-300">Curtiss-Wright Defense Electronics</p>
-                                <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">CW ThermalCalc</h1>
+                                <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">Electronics Thermal Resistance Calculator</h1>
                                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
                                     A guided heat-check tool for electronics. Enter the device heat, the surrounding temperature, and the cooling parts to see if the chip stays within a safe temperature.
                                 </p>
