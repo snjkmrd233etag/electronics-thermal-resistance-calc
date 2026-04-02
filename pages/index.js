@@ -29,6 +29,7 @@ const THETA_JC_PRESETS = [
 const APP_LINKS = [
     { label: 'Stack Calc', href: 'https://cw-stack-calc.vercel.app/' },
     { label: 'Wire Calc', href: 'https://cw-wire-calc.vercel.app/' },
+    { label: 'Reliability Calc', href: 'https://cw-relicalc.vercel.app/' },
     { label: 'Unit Converter', href: 'https://defenseengineeringunitconverter.vercel.app/?category=force&value=100&from=kn&to=lbf&precision=2' },
     { label: 'Earned Value', href: 'https://earned-value-management.vercel.app/' },
     { label: 'Supplier Scorecard', href: 'https://suplier-performance-scorecard-gener.vercel.app/' },
