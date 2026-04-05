@@ -928,6 +928,7 @@ export default function Home() {
     const [copyStatus, setCopyStatus] = useState('');
     const [selectedSolverLayer, setSelectedSolverLayer] = useState('');
     const [modeMenuOpen, setModeMenuOpen] = useState(false);
+    const [activeRouteTab, setActiveRouteTab] = useState('A');
 
     const results = useMemo(() => computeResults(state), [state]);
     const debouncedState = useDebouncedValue(state, 150);
@@ -1366,9 +1367,33 @@ export default function Home() {
                             </div>
 
                             {state.parallelMode ? (
-                                <div className="space-y-6">
-                                    {renderLayerStack('A', 'Cooling Route A', state.layers, results.pathA?.layers || [])}
-                                    {renderLayerStack('B', 'Cooling Route B', state.layersB, results.pathB?.layers || [])}
+                                <div className="space-y-4">
+                                    <div className="flex gap-2 rounded-2xl bg-slate-950/80 p-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveRouteTab('A')}
+                                            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                                                activeRouteTab === 'A' ? 'bg-teal-400 text-slate-950 shadow-md' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            Route A Setup
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveRouteTab('B')}
+                                            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                                                activeRouteTab === 'B' ? 'bg-teal-400 text-slate-950 shadow-md' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            Route B Setup
+                                        </button>
+                                    </div>
+                                    <div className={activeRouteTab === 'A' ? 'block' : 'hidden'}>
+                                        {renderLayerStack('A', 'Cooling Route A', state.layers, results.pathA?.layers || [])}
+                                    </div>
+                                    <div className={activeRouteTab === 'B' ? 'block' : 'hidden'}>
+                                        {renderLayerStack('B', 'Cooling Route B', state.layersB, results.pathB?.layers || [])}
+                                    </div>
                                 </div>
                             ) : (
                                 renderLayerStack('A', 'Cooling Route', state.layers, results.breakdown)
