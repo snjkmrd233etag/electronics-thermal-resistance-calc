@@ -475,34 +475,36 @@ function isDieLayer(name) {
     return /die|junction|θ_jc/i.test(name || '');
 }
 
-function renderChainSvg(layers, ambient, junction, title) {
-    const vertical = layers.length > 5;
+function renderChainSvg(layers, ambient, junction, title, maxLayers = layers.length) {
+    const vertical = maxLayers > 5;
 
     if (vertical) {
-        const width = 560;
-        const height = 120 + layers.length * 96;
+        const width = 600;
+        const rowHeight = 96;
+        const rowPitch = 122;
+        const height = 152 + maxLayers * rowPitch;
         return (
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
-                <text x="30" y="30" fill="#dbe7f4" fontSize="14" fontWeight="700">{title}</text>
-                <text x="30" y="54" fill="#f8b34a" fontSize="16" fontWeight="700">
+                <text x="30" y="32" fill="#dbe7f4" fontSize="15" fontWeight="700">{title}</text>
+                <text x="30" y="60" fill="#f8b34a" fontSize="17" fontWeight="700">
                     Junction {formatNumber(junction, 1)}°C
                 </text>
                 {layers.map((layer, index) => {
-                    const y = 78 + index * 92;
+                    const y = 84 + index * rowPitch;
                     const fill = gradientColor(layer.tIn, ambient, junction);
                     return (
                         <g key={layer.id}>
-                            <rect x="34" y={y} width="492" height="70" rx="18" fill={fill} fillOpacity="0.25" stroke={fill} strokeWidth="1.5" />
-                            <text x="56" y={y + 24} fill="#f8fafc" fontSize="15" fontWeight="700">{layer.name || `Layer ${index + 1}`}</text>
-                            <text x="56" y={y + 46} fill="#cbd5e1" fontSize="13">R = {formatNumber(layer.resistance, 3)} °C/W</text>
-                            <text x="56" y={y + 62} fill="#94a3b8" fontSize="12">T_out = {formatNumber(layer.tOut, 1)} °C</text>
+                            <rect x="34" y={y} width="532" height={rowHeight} rx="18" fill={fill} fillOpacity="0.25" stroke={fill} strokeWidth="1.5" />
+                            <text x="58" y={y + 28} fill="#f8fafc" fontSize="16" fontWeight="700">{layer.name || `Layer ${index + 1}`}</text>
+                            <text x="58" y={y + 54} fill="#cbd5e1" fontSize="14">R = {formatNumber(layer.resistance, 3)} °C/W</text>
+                            <text x="58" y={y + 76} fill="#94a3b8" fontSize="13">T_out = {formatNumber(layer.tOut, 1)} °C</text>
                             {index < layers.length - 1 ? (
-                                <line x1="280" y1={y + 70} x2="280" y2={y + 92} stroke="#475569" strokeDasharray="4 4" />
+                                <line x1="300" y1={y + rowHeight} x2="300" y2={y + rowPitch} stroke="#475569" strokeDasharray="5 4" />
                             ) : null}
                         </g>
                     );
                 })}
-                <text x="30" y={height - 20} fill="#5eead4" fontSize="16" fontWeight="700">
+                <text x="30" y={height - 22} fill="#5eead4" fontSize="17" fontWeight="700">
                     Ambient {formatNumber(ambient, 1)}°C
                 </text>
             </svg>
@@ -510,33 +512,38 @@ function renderChainSvg(layers, ambient, junction, title) {
     }
 
     const width = 980;
-    const blockWidth = Math.max(130, Math.floor((width - 160) / Math.max(layers.length, 1)));
-    const height = 270;
+    const blockWidth = Math.max(168, Math.floor((width - 160) / Math.max(maxLayers, 1)));
+    const blockH = 128;
+    const height = 370;
     return (
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
-            <text x="24" y="26" fill="#dbe7f4" fontSize="14" fontWeight="700">{title}</text>
-            <text x="24" y="56" fill="#f8b34a" fontSize="18" fontWeight="700">
-                Junction {formatNumber(junction, 1)}°C
-            </text>
-            {layers.map((layer, index) => {
-                const x = 96 + index * blockWidth;
-                const fill = gradientColor(layer.tIn, ambient, junction);
-                return (
-                    <g key={layer.id}>
-                        <rect x={x} y="74" width={blockWidth - 18} height="92" rx="18" fill={fill} fillOpacity="0.24" stroke={fill} strokeWidth="1.5" />
-                        <text x={x + 14} y="102" fill="#f8fafc" fontSize="14" fontWeight="700">{layer.name || `Layer ${index + 1}`}</text>
-                        <text x={x + 14} y="126" fill="#cbd5e1" fontSize="13">R = {formatNumber(layer.resistance, 3)} °C/W</text>
-                        <text x={x + 14} y="148" fill="#94a3b8" fontSize="12">T_out = {formatNumber(layer.tOut, 1)} °C</text>
-                        {index < layers.length - 1 ? (
-                            <line x1={x + blockWidth - 18} y1="120" x2={x + blockWidth} y2="120" stroke="#475569" strokeWidth="2" />
-                        ) : null}
-                    </g>
-                );
-            })}
-            <text x={width - 132} y="56" fill="#5eead4" fontSize="18" fontWeight="700">
-                Ambient {formatNumber(ambient, 1)}°C
-            </text>
-        </svg>
+        <div className="w-full overflow-x-auto pb-1">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ minWidth: `${Math.max(width, 160 + maxLayers * blockWidth)}px` }}>
+                <text x="24" y="30" fill="#dbe7f4" fontSize="15" fontWeight="700">{title}</text>
+                <text x="24" y="64" fill="#f8b34a" fontSize="19" fontWeight="700">
+                    Junction {formatNumber(junction, 1)}°C
+                </text>
+                {layers.map((layer, index) => {
+                    const x = 96 + index * blockWidth;
+                    const fill = gradientColor(layer.tIn, ambient, junction);
+                    return (
+                        <g key={layer.id}>
+                            <rect x={x} y="86" width={blockWidth - 20} height={blockH} rx="18" fill={fill} fillOpacity="0.24" stroke={fill} strokeWidth="1.5" />
+                            <text x={x + 16} y="118" fill="#f8fafc" fontSize="15" fontWeight="700">
+                                {layer.name ? (layer.name.length > 14 ? layer.name.slice(0, 12) + '…' : layer.name) : `Layer ${index + 1}`}
+                            </text>
+                            <text x={x + 16} y="143" fill="#cbd5e1" fontSize="14">R = {formatNumber(layer.resistance, 3)} °C/W</text>
+                            <text x={x + 16} y="166" fill="#94a3b8" fontSize="13">T_out = {formatNumber(layer.tOut, 1)} °C</text>
+                            {index < layers.length - 1 ? (
+                                <line x1={x + blockWidth - 20} y1={86 + blockH / 2} x2={x + blockWidth} y2={86 + blockH / 2} stroke="#475569" strokeWidth="2" />
+                            ) : null}
+                        </g>
+                    );
+                })}
+                <text x={width - 152} y="64" fill="#5eead4" fontSize="19" fontWeight="700">
+                    Ambient {formatNumber(ambient, 1)}°C
+                </text>
+            </svg>
+        </div>
     );
 }
 
@@ -550,26 +557,26 @@ function GradientBar({ temperatures, ambient, junction }) {
     }
 
     return (
-        <div className="rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-950 to-slate-900 p-5 shadow-lg shadow-slate-950/20">
-            <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-400">
-                <span>Heat Range</span>
-                <span>{formatNumber(ambient, 1)}°C to {formatNumber(junction, 1)}°C</span>
+        <div className="overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-950 to-slate-900 p-5 shadow-lg shadow-slate-950/20">
+            <div className="mb-4 flex min-w-0 items-center justify-between gap-3 text-xs uppercase tracking-[0.22em] text-slate-400">
+                <span className="shrink-0 font-semibold">Heat Range</span>
+                <span className="min-w-0 truncate text-right">{formatNumber(ambient, 1)}°C → {formatNumber(junction, 1)}°C</span>
             </div>
-            <div className="relative h-4 rounded-full bg-gradient-to-r from-cyan-400 via-teal-400 via-40% to-amber-400">
+            <div className="relative h-5 overflow-hidden rounded-full bg-gradient-to-r from-cyan-400 via-teal-400 via-40% to-amber-400">
                 {temperatures.map((temp, index) => {
                     const percent = junction === ambient ? 0 : ((temp - ambient) / (junction - ambient)) * 100;
                     return (
                         <span
                             key={`${temp}-${index}`}
-                            className="absolute top-1/2 h-7 w-px -translate-y-1/2 bg-slate-950"
+                            className="absolute top-0 h-full w-px bg-slate-950/60"
                             style={{ left: `${Math.min(100, Math.max(0, percent))}%` }}
                         />
                     );
                 })}
             </div>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-300">
+            <div className="mt-3 flex w-full flex-wrap gap-2 overflow-hidden text-xs text-slate-300">
                 {temperatures.map((temp, index) => (
-                    <span key={`${temp}-label-${index}`} className="rounded-full border border-slate-700 px-3 py-1">
+                    <span key={`${temp}-label-${index}`} className="shrink-0 whitespace-nowrap rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1">
                         Node {index}: {formatNumber(temp, 1)}°C
                     </span>
                 ))}
@@ -895,22 +902,26 @@ function ThermalDiagram({ results, ambient, debouncedResults }) {
 
             <div className="rounded-3xl border border-slate-800 bg-slate-950/85 p-4">
                 {debouncedResults.mode === 'parallel' ? (
-                    <div className="grid gap-6 xl:grid-cols-2">
-                        <div>{renderChainSvg(debouncedResults.pathA.layers, ambient, junction, 'Route A')}</div>
-                        <div>{renderChainSvg(debouncedResults.pathB.layers, ambient, junction, 'Route B')}</div>
+                    <div className="grid items-start gap-6 xl:grid-cols-2">
+                        <div className="min-w-0">{renderChainSvg(debouncedResults.pathA.layers, ambient, junction, 'Route A', Math.max(debouncedResults.pathA.layers.length, debouncedResults.pathB.layers.length))}</div>
+                        <div className="min-w-0">{renderChainSvg(debouncedResults.pathB.layers, ambient, junction, 'Route B', Math.max(debouncedResults.pathA.layers.length, debouncedResults.pathB.layers.length))}</div>
                     </div>
                 ) : (
-                    renderChainSvg(debouncedResults.breakdown, ambient, junction, 'Primary Chain')
+                    <div className="min-w-0">
+                        {renderChainSvg(debouncedResults.breakdown, ambient, junction, 'Primary Chain', debouncedResults.breakdown.length)}
+                    </div>
                 )}
             </div>
 
             {debouncedResults.mode === 'parallel' ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                    <GradientBar temperatures={debouncedResults.pathA.interfaceTemperatures} ambient={ambient} junction={junction} />
-                    <GradientBar temperatures={debouncedResults.pathB.interfaceTemperatures} ambient={ambient} junction={junction} />
+                <div className="grid items-start gap-4 md:grid-cols-2">
+                    <div className="min-w-0"><GradientBar temperatures={debouncedResults.pathA.interfaceTemperatures} ambient={ambient} junction={junction} /></div>
+                    <div className="min-w-0"><GradientBar temperatures={debouncedResults.pathB.interfaceTemperatures} ambient={ambient} junction={junction} /></div>
                 </div>
             ) : (
-                <GradientBar temperatures={debouncedResults.interfaceTemperatures} ambient={ambient} junction={junction} />
+                <div className="min-w-0">
+                    <GradientBar temperatures={debouncedResults.interfaceTemperatures} ambient={ambient} junction={junction} />
+                </div>
             )}
         </div>
     );
